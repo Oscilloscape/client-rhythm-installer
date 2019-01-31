@@ -252,7 +252,7 @@ class AppContext(ApplicationContext):
 
 if __name__ == '__main__':
     
-    elevate(graphical=False)
+    elevate()
     appctxt = AppContext()
     exit_code = appctxt.run()
     sys.exit(exit_code)
