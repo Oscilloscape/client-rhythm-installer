@@ -4,9 +4,13 @@ For more info, see: https://build-system.fman.io/pyqt5-tutorial
 
 As of now, only Python 3.6 is supported for fbs.
 
-Install 
+##Installation and Build
 
+Use the supported Python v3.6 and PyInstaller 3.4 (as of now)
 
+To install PyInstaller v3.4, run
+
+pip install pyinstaller==3.4 
 
 
 Mac OS
