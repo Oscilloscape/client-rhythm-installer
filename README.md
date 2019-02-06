@@ -12,6 +12,12 @@ To install PyInstaller v3.4, run
 
 pip install pyinstaller==3.4 
 
+###Finding the fbs and pyinstaller executable
+
+fbs and pyinstaller binary are often not installed in the path. Look for the installation location using
+
+python3 -m site --user-base
+
 
 Mac OS
 
