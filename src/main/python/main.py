@@ -40,12 +40,9 @@ class InstallHandler(QThread):
     def __init__(self, config, fel_mode_script=None):
         QThread.__init__(self)
 
-        self.app_directory = ''
-
-        if is_mac():
-            self.app_directory = ''
-
         self.copy_directory = 'files'
+        if is_mac():
+            self.copy_directory = '/Library/Application Support/synchrony/files'
 
         if is_linux() or is_mac():
             self.mount_dir = '/media/synchrony/allwinner'
