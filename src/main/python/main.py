@@ -69,19 +69,16 @@ class InstallHandler(QThread):
         self.system_partition = None
         self.completed_before = False
 
-
     
     def initiate_fel_mode(self):
-        
-        fel_mass_dir = '/home/helmholtz/fel-mass-storage'.format(getpass.getuser())
-        if not os.path.exists(fel_mass_dir):
-            return (False, 'Cant find fel-mass-storage dir at {0}'.format(fel_mass_dir))
 
         os.makedirs(self.mount_dir, exist_ok=True)
 
         # Catching fel-mass-storage failure
 
-        p = subprocess.Popen([self.fel_mode_script], cwd=fel_mass_dir, 
+        print(os.path.dirname(self.fel_mode_script))
+
+        p = subprocess.Popen([self.fel_mode_script], cwd=os.path.dirname(self.fel_mode_script), 
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         
         while True:
@@ -149,14 +146,30 @@ class InstallHandler(QThread):
         return (True, 'Finished with unmount')
 
     def download_files(self):
-        if not os.path.exists(self.copy_directory):
-            os.mkdir(self.copy_directory)
+        os.makedirs(self.copy_directory, exist_ok=True)
 
-        # get list of latest files
+        s3_bucket_url = self.config.s3_bucket_url
 
-        # requests.get('')
+        try:
+            self.progress_signal.emit('Downloading latest updates...', 0, 100)
 
-        # download into 
+            r = requests.get('{0}/latest-version'.format(s3_bucket_url))
+            if r.status_code != 200:
+                return (False, 'Failed to get latest updates')
+            latest_version = r.content.strip().decode()
+
+            for file_name, dest in self.files_dest.items():
+                file_url = '{0}/{1}/{2}'.format(s3_bucket_url, latest_version, file_name)
+                r = requests.get(file_url)
+                if r.status_code == 200:
+                    file_copy_dest = '{0}/{1}'.format(self.copy_directory, file_name)
+                    with open(file_copy_dest, 'wb') as f:
+                        f.write(r.content)
+                    print('Downloaded {0}'.format(file_name))
+                else:
+                    print('Did not find or failed to download {0}'.format(file_url))
+        except Exception as e:
+            return (False, str(e))
 
         return (True, '')
 
@@ -235,6 +248,8 @@ class InstallHandler(QThread):
 
         if success:
             success, msg = self.copy_files()
+
+        if success:
             self.wait_with_progress('Copying files...', 45)
 
         if success:
