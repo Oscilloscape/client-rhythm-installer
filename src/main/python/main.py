@@ -19,8 +19,8 @@ import getpass
 import time
 from shutil import copyfile
 from threading import Thread
-
-
+import shutil
+import json
 
 def is_linux():
     return platform == 'linux' or platform == 'linux2'
@@ -35,8 +35,9 @@ class InstallHandler(QThread):
 
     finish_signal = pyqtSignal(bool, str)
     progress_signal = pyqtSignal(str, int, int)
+    unplug_signal = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, config, fel_mode_script=None):
         QThread.__init__(self)
 
         self.app_directory = ''
@@ -53,6 +54,9 @@ class InstallHandler(QThread):
 
         self.os_rootdir = '/media/{0}/SYSTEM/@'.format(getpass.getuser())
 
+        self.config = config
+        self.fel_mode_script = fel_mode_script
+
         self.files_dest = { 
                 'u-boot.scr': self.mount_dir,
                 'client-rhythm.json': os.path.join(self.os_rootdir, 'etc'),
@@ -64,6 +68,8 @@ class InstallHandler(QThread):
         self.partition = None
         self.system_partition = None
         self.completed_before = False
+
+
     
     def initiate_fel_mode(self):
         
@@ -71,17 +77,11 @@ class InstallHandler(QThread):
         if not os.path.exists(fel_mass_dir):
             return (False, 'Cant find fel-mass-storage dir at {0}'.format(fel_mass_dir))
 
-        if not os.path.exists(self.mount_dir):
-            os.mkdir(self.mount_dir)
-
-        # p = subprocess.Popen(['sudo', '-S', 'mkdir', '-p', self.mount_dir], stdin=subprocess.PIPE)
-        #p.communicate('{0}\n'.format(sudo_password))
-        #if p.wait() != 0:
-        #    return (False, 'Failed to make directory {0}'.format(self.mount_dir)) 
+        os.makedirs(self.mount_dir, exist_ok=True)
 
         # Catching fel-mass-storage failure
 
-        p = subprocess.Popen(['./start.sh'], cwd=fel_mass_dir, 
+        p = subprocess.Popen([self.fel_mode_script], cwd=fel_mass_dir, 
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         
         while True:
@@ -96,22 +96,9 @@ class InstallHandler(QThread):
         return (True, 'Success')
 
     def mount(self):
-        success, message = self.initiate_fel_mode()
-
-        if not success:
-            return (False, "Failed to initiate fel mode")
 
         fdisk_cmd = ['fdisk', '-l']
-        #p = subprocess.Popen(fdisk_cmd, stdout=subprocess.PIPE, stderr = subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
-        
-        #out = ''
-        # try:
-        #     out = subprocess.check_output(fdisk_cmd).strip()
-        # except OSError as e:
-        #     return (False, str(e))
         out = subprocess.check_output(fdisk_cmd)
-        #out, err =  p.communicate() # '{0}\n'.format(sudo_password).encode('ascii'))
-        # out = subprocess.check_output(fdisk_cmd).strip()
         out = out.decode()
         lines = filter(lambda x : x.startswith('/dev'), out.split('\n'))
         print(out)
@@ -130,7 +117,6 @@ class InstallHandler(QThread):
         if self.partition:
             p = subprocess.Popen(['mount', '-t', 'vfat' , self.partition, self.mount_dir], 
                                  stdin=subprocess.PIPE)
-            # p.communicate('{0}\n'.format(self.sudo_password))
             if p.wait() != 0:
                 return (False, 'Failed to mount')
             else: 
@@ -147,8 +133,6 @@ class InstallHandler(QThread):
 
         return (False, 'Could not find device partition from output {0}'.format(out))
 
-        
-
     def unmount(self):
         print('Unmounting {0} as SYSTEM'.format(self.system_partition))
 
@@ -156,8 +140,8 @@ class InstallHandler(QThread):
         if p.wait() != 0:
             return (False, 'Failed to unmount SYSTEM')
 
-        p = subprocess.Popen(['sudo', '-S', 'umount', self.mount_dir], stdin=subprocess.PIPE)
-        p.communicate('{0}\n'.format(self.sudo_password))
+        p = subprocess.Popen(['umount', self.mount_dir], stdin=subprocess.PIPE)
+        p.communicate()
         if p.wait() != 0:
             return (False, 'Failed to unmount')
         
@@ -179,48 +163,53 @@ class InstallHandler(QThread):
     
     def copy_files(self):
 
-        if not os.path.exists(dir_name):
-            return (False, 'The directory {0} does not exist'.format(dir_name))
+        if not os.path.exists(self.copy_directory):
+            return (False, 'The directory {0} does not exist'.format(self.copy_directory))
 
-        print('Copying from directory {0}'.format(dir_name))
+        print('Copying from directory {0}'.format(self.copy_directory))
 
-        add_dir = lambda f : os.path.join(dir_name, f)
+        add_dir = lambda f : os.path.join(self.copy_directory, f)
         user = getpass.getuser()
 
         def check_file(file_loc): 
             if os.path.isfile(file_loc):
                 return True
             else: 
-                print('Could not find file {0}'.format(file_loc))
                 return False
 
         def copy_file_print(file_name, dest):
             print('Copying from {0} to {1}'.format(file_name, dest))
-            p = subprocess.Popen(['sudo', '-S', 'cp', file_name, dest], 
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-            out, err = p.communicate() # '{0}\n'.format(self.sudo_password))
-            if out:
-                print(str(out))
-            if err:
-                print(err)
-            if p.wait() != 0:
-                print('Copy failed from {0} to {1}'.format(file_name, dest))
-                return -1
-            return 0
 
-        for f, dest in self.files_dest.iteritems():
+            try:
+                shutil.copy(file_name, dest)
+            except Exception as e:
+                return (False, 'Copy failed from {0} to {1}: {2}'.format(file_name, dest, e))
+
+            # p = subprocess.Popen(['cp', file_name, dest], 
+            #         stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            # out, err = p.communicate() # '{0}\n'.format(self.sudo_password))
+            # if out:
+            #     print(str(out))
+            # if err:
+            #     print(err)
+            # if p.wait() != 0:
+            #     print()
+            #     return -1
+            return (True, '')
+
+        for f, dest in self.files_dest.items():
             file_loc = add_dir(f)
             
             if check_file(file_loc):
-                failed = copy_file_print(file_loc, os.path.join(dest, f))
+                failed, msg = copy_file_print(file_loc, os.path.join(dest, f))
                 if failed:
-                    return
+                    return (failed, msg)
 
         return (True, 'Success')
 
     def wait_with_progress(self, message, sec):
         counter = 0
-        while counter < sec:
+        while counter <= sec:
             self.progress_signal.emit(message, counter, sec)
             QThread.sleep(1)
             counter += 1
@@ -229,17 +218,17 @@ class InstallHandler(QThread):
 
         success = False
 
-        if not self.completed_before:
-            # prompt to unplug and plug the device again
+        if self.completed_before:
+            self.unplug_signal.emit()
+        else:
+            success, msg = self.download_files()    
 
-            success, msg = self.download_files()
-            
-
-        if success:
-            success, msg = self.initiate_fel_mode()
+        if is_linux() or is_mac():
+            if success:
+                success, msg = self.initiate_fel_mode()
         
         if success:
-            self.wait_with_progress('Mouting the device...', 10)
+            self.wait_with_progress('Mounting the device...', 10)
 
         if success: 
             success, msg = self.mount()
@@ -260,6 +249,13 @@ class InstallHandler(QThread):
 class AppContext(ApplicationContext):
 
     def run(self):
+        config_file = self.get_resource('config.json')
+        config = json.loads(open(config_file).read())
+
+        fel_mode_script = None
+        if is_linux() or is_mac():
+            fel_mode_script = self.get_resource('fel-mass-storage/start.sh')
+
         window = QMainWindow()
         version = self.build_settings['version']
         window.setWindowTitle('Synchrony Installer')
@@ -267,7 +263,7 @@ class AppContext(ApplicationContext):
 
         layout = QVBoxLayout()
 
-        self.install_handler = InstallHandler()
+        self.install_handler = InstallHandler(config, fel_mode_script)
 
         self.install_button = QPushButton('Install')
         self.install_button.clicked.connect(self.clicked_install)
@@ -275,6 +271,8 @@ class AppContext(ApplicationContext):
         self.progress_bar = QProgressBar()
         self.progress_bar.setMaximum(100)
         self.install_handler.progress_signal.connect(self.update_progress)
+
+        self.install_handler.unplug_signal.connect(self.prompt_unplug)
 
         layout.addWidget(self.install_button)
         layout.addWidget(self.progress_bar)
@@ -305,10 +303,17 @@ class AppContext(ApplicationContext):
             self.progress_bar.setValue(0)
             self.progress_bar.setFormat('Failed to update the device')
 
-
     def update_progress(self, current, done, total):
         self.progress_bar.setValue((done / total) * 100)
-        self.progress_bar.setFormat('{0} {1}%'.format(current, (done / total) * 100))
+        self.progress_bar.setFormat('{0}'.format(current))
+
+    def prompt_unplug(self):
+        prompt = QMessageBox()
+        prompt.setIcon(QMessageBox.Warning)
+        prompt.setText('Plug out the device and plug it back in fel-mode.')
+        prompt.setStandardButtons(QMessageBox.Ok)
+
+        self.install_handler.completed_before = False
 
 
 if __name__ == '__main__':
