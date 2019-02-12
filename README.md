@@ -40,3 +40,9 @@ Make symbolic link of PyInstaller as below:
 ln -s /Library/Frameworks/Python.framework/Versions/3.6/bin/pyinstaller /usr/local/bin/pyinstaller
 
 open -a Installer.app in target
+
+Windows
+
+Install Windows 10 SDK from: https://dev.windows.com/en-us/downloads/windows-10-sdk
+Note: You might have to restart the command prompt to get the fbs to work.
+
