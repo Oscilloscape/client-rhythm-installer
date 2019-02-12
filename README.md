@@ -22,7 +22,9 @@ fbs and pyinstaller binary are often not installed in the path. Look for the ins
 
 python3 -m site --user-base
 
-To run the executable, run: 
+To run the executable, first initialize the config file in src/main/resources/base by copying the config.json.example file to config.json.
+
+Then, run:
 
 fbs run
 
