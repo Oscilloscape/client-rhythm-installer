@@ -10,7 +10,11 @@ Use the supported Python v3.6 and PyInstaller 3.4 (as of now)
 
 To install PyInstaller v3.4, run
 
-pip install pyinstaller==3.4 
+pip3 install pyinstaller==3.4 
+
+Install fbs and PyQt5 packages
+
+pip3 install fbs PyQt5
 
 ###Finding the fbs and pyinstaller executable
 
@@ -18,6 +22,11 @@ fbs and pyinstaller binary are often not installed in the path. Look for the ins
 
 python3 -m site --user-base
 
+To run the executable, first initialize the config file in src/main/resources/base by copying the config.json.example file to config.json.
+
+Then, run:
+
+fbs run
 
 Mac OS
 
@@ -33,3 +42,9 @@ Make symbolic link of PyInstaller as below:
 ln -s /Library/Frameworks/Python.framework/Versions/3.6/bin/pyinstaller /usr/local/bin/pyinstaller
 
 open -a Installer.app in target
+
+Windows
+
+Install Windows 10 SDK from: https://dev.windows.com/en-us/downloads/windows-10-sdk
+Note: You might have to restart the command prompt to get the fbs to work.
+
