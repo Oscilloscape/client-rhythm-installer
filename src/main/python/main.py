@@ -38,15 +38,18 @@ class InstallHandler(QThread):
     progress_signal = pyqtSignal(str, int, int)
     unplug_signal = pyqtSignal()
 
-    def __init__(self, config, fel_mode_script=None):
+    def __init__(self, config, fel_mode_script=None, sunxi_fel=None):
         QThread.__init__(self)
 
         self.copy_directory = 'files'
         if is_mac():
             self.copy_directory = '/Library/Application Support/synchrony/files'
 
-        if is_linux() or is_mac():
+        if is_linux():
             self.mount_dir = '/media/synchrony/allwinner'
+        elif is_mac():
+            self.mount_dir = ''
+            self.system_mount_dir = ''
         else:
             self.mount_dir = ''
 
@@ -54,6 +57,7 @@ class InstallHandler(QThread):
 
         self.config = config
         self.fel_mode_script = fel_mode_script
+        self.sunxi_fel = sunxi_fel
 
         self.files_dest = { 
                 'u-boot.scr': self.mount_dir,
@@ -71,14 +75,21 @@ class InstallHandler(QThread):
     def initiate_fel_mode(self):
 
         os.makedirs(self.mount_dir, exist_ok=True)
-        
-        out = subprocess.check_output([self.fel_mode_script],
-                                      cwd=os.path.dirname(self.fel_mode_script))
-        
-        out = out.decode()
-        print(out)
 
-        return (True, 'Success')
+        if is_linux() or is_mac(): 
+
+            p = subprocess.Popen([self.fel_mode_script],
+                                  cwd=os.path.dirname(self.fel_mode_script),
+                                  env={ 'SUNXI_FEL': self.sunxi_fel })
+
+            if p.wait() != 0:
+                return (False, 'Failed to engage in FEL mode')
+        else:
+            pass
+
+
+        return (True, 'Successful engaged in FEL mode')
+
 
     def mount(self):
         
@@ -103,6 +114,8 @@ class InstallHandler(QThread):
         elif is_mac():
             out = subprocess.check_output(shlex.split('diskutil list'))
             out = out.decode()
+            disks = out.split('/dev/')
+            print(disks)
             diskutil_lines = out.split('\n')
             for i, l in enumerate(diskutil_lines):
                 parts = list(filter(None, l.split(' ')))
@@ -138,11 +151,18 @@ class InstallHandler(QThread):
                     return (False, 'Failed to mount SYSTEM')
 
             elif is_mac():
-                out = subprocess.check_output(shlex.split('diskutil mount {0}'.format(self.partition)))
-            
+
+                out = subprocess.check_output(
+                    shlex.split('sudo mount -t msdos {0} {1}'.format(self.partition, self.mount_dir)))
+
                 out = out.decode()
-                if not out.contains('mounted'):
-                    return (False, 'Failed to mount')
+
+                print(out)
+
+                out = subprocess.check_output(
+                    shlex.split('sudo mount -t msdos {0} {1}'.format(self.system_partition, self.system_mount_dir)))
+
+                out = out.decode()
                 
             else:
                 pass
@@ -169,7 +189,10 @@ class InstallHandler(QThread):
                 return (False, 'Failed to unmount')
 
         elif is_mac():
-            out = subprocess.check_output(shlex.split('diskutil unmount {0}'.format()))
+            out = subprocess.check_output(shlex.split('diskutil unmount {0}'.format(self.partition)))
+            out = out.decode()
+
+
 
         else:
             pass
@@ -216,12 +239,6 @@ class InstallHandler(QThread):
         add_dir = lambda f : os.path.join(self.copy_directory, f)
         user = getpass.getuser()
 
-        def check_file(file_loc): 
-            if os.path.isfile(file_loc):
-                return True
-            else: 
-                return False
-
         def copy_file_print(file_name, dest):
             print('Copying from {0} to {1}'.format(file_name, dest))
 
@@ -235,7 +252,7 @@ class InstallHandler(QThread):
         for f, dest in self.files_dest.items():
             file_loc = add_dir(f)
             
-            if check_file(file_loc):
+            if os.path.isfile(file_loc):
                 failed, msg = copy_file_print(file_loc, os.path.join(dest, f))
                 if failed:
                     return (failed, msg)
@@ -296,6 +313,8 @@ class AppContext(ApplicationContext):
         if is_linux() or is_mac():
             fel_mode_script = self.get_resource('fel-mass-storage/start.sh')
 
+        sunxi_fel = self.get_resource('sunxi-fel')
+
         window = QMainWindow()
         version = self.build_settings['version']
         window.setWindowTitle('Synchrony Installer')
@@ -303,7 +322,7 @@ class AppContext(ApplicationContext):
 
         layout = QVBoxLayout()
 
-        self.install_handler = InstallHandler(config, fel_mode_script)
+        self.install_handler = InstallHandler(config, fel_mode_script, sunxi_fel)
 
         self.install_button = QPushButton('Install')
         self.install_button.clicked.connect(self.clicked_install)
@@ -335,6 +354,9 @@ class AppContext(ApplicationContext):
         self.install_handler.finish_signal.connect(self.finished_install)
         self.install_handler.finish_signal.connect(self.clear_progress_bar)
 
+        if is_mac():
+            self.install_handler.finish_signal.connect(self.update_progress_text)
+
     def finished_install(self, success, msg):
         print('Success: {0}'.format(success))
         print(msg)
@@ -354,6 +376,9 @@ class AppContext(ApplicationContext):
     
     def update_progress_text(self, current, done, total):
         self.progress_status.showMessage(current)
+
+    def update_progress_text(self, success, msg):
+        self.progress_status.showMessage(msg)
 
     def prompt_unplug(self):
         prompt = QMessageBox()
