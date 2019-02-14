@@ -110,6 +110,21 @@ class InstallHandler(QThread):
                 if boot_flag == '*' and size == '255M':
                     print('Mounting {0}'.format(partition_name))
                     self.partition = partition_name
+
+            if self.partition:
+                p = subprocess.Popen(['mount', '-t', 'vfat' , self.partition, self.mount_dir],
+                                     stdin=subprocess.PIPE)
+                if p.wait() != 0:
+                    return (False, 'Failed to mount')
+
+                self.system_partition = self.partition[:-1] + str(int(self.partition[-1:]) + 1)
+                print('Mounting {0} as SYSTEM'.format(self.system_partition))
+                p = subprocess.Popen(['udisksctl', 'mount', '--block-device', self.system_partition])
+                
+                if p.wait() != 0:
+                    return (False, 'Failed to mount SYSTEM')
+
+            return (True, 'Successfully mounted the device')
                         
         elif is_mac():
             out = subprocess.check_output(shlex.split('diskutil list'))
@@ -117,6 +132,7 @@ class InstallHandler(QThread):
             disks = out.split('/dev/')
             print(disks)
             diskutil_lines = out.split('\n')
+            print(diskutil_lines)
             for i, l in enumerate(diskutil_lines):
                 parts = list(filter(None, l.split(' ')))
                 print(parts)
@@ -131,27 +147,7 @@ class InstallHandler(QThread):
                     _, linux_name, _, linux_id = linux_part_line
                     print(disk_size, boot_name, boot_size, linux_name, linux_id)
 
-        else:
-            pass
-
-
-
-        if self.partition:
-            if is_linux():
-                p = subprocess.Popen(['mount', '-t', 'vfat' , self.partition, self.mount_dir],
-                                     stdin=subprocess.PIPE)
-                if p.wait() != 0:
-                    return (False, 'Failed to mount')
-
-                self.system_partition = self.partition[:-1] + str(int(self.partition[-1:]) + 1)
-                print('Mounting {0} as SYSTEM'.format(self.system_partition))
-                p = subprocess.Popen(['udisksctl', 'mount', '--block-device', self.system_partition])
-                
-                if p.wait() != 0:
-                    return (False, 'Failed to mount SYSTEM')
-
-            elif is_mac():
-
+            if self.partition and self.system_partition:
                 out = subprocess.check_output(
                     shlex.split('sudo mount -t msdos {0} {1}'.format(self.partition, self.mount_dir)))
 
@@ -163,14 +159,14 @@ class InstallHandler(QThread):
                     shlex.split('sudo mount -t msdos {0} {1}'.format(self.system_partition, self.system_mount_dir)))
 
                 out = out.decode()
-                
-            else:
-                pass
 
+                print('Succeeded to mount SYSTEM')
             
-            print('Succeeded to mount SYSTEM')
-            
-            return (True, 'Success')
+                return (True, 'Success')
+
+        else:
+            pass
+  
 
         return (False, 'Could not find device partition from output {0}'.format(out))
 
@@ -191,8 +187,6 @@ class InstallHandler(QThread):
         elif is_mac():
             out = subprocess.check_output(shlex.split('diskutil unmount {0}'.format(self.partition)))
             out = out.decode()
-
-
 
         else:
             pass
@@ -266,6 +260,9 @@ class InstallHandler(QThread):
             QThread.sleep(1)
             counter += 1
 
+    def report_progress(self, message):
+        self.progress_signal.emit(message, 0, 1)
+
     def run(self):
 
         success = False
@@ -276,12 +273,14 @@ class InstallHandler(QThread):
             pass
             # success, msg = self.download_files()
 
+        self.report_progress('hello')
+
         success = True
-        
-        if is_linux() or is_mac():
-            if success:
-                success, msg = self.initiate_fel_mode()
-        
+
+        if success:
+            self.report_progress('Initiating the mounting of the device...')
+            success, msg = self.initiate_fel_mode()
+
         if success:
             self.wait_with_progress('Mounting the device...', 10)
 
