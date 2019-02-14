@@ -48,8 +48,8 @@ class InstallHandler(QThread):
         if is_linux():
             self.mount_dir = '/media/synchrony/allwinner'
         elif is_mac():
-            self.mount_dir = ''
-            self.system_mount_dir = ''
+            self.mount_dir = '/Volume/synchrony_boot'
+            self.system_mount_dir = '/Volume/synchrony'
         else:
             self.mount_dir = ''
 
@@ -76,22 +76,22 @@ class InstallHandler(QThread):
 
         os.makedirs(self.mount_dir, exist_ok=True)
 
-        if is_linux() or is_mac(): 
+        p = None
 
+        if is_linux() or is_mac(): 
             p = subprocess.Popen([self.fel_mode_script],
                                   cwd=os.path.dirname(self.fel_mode_script),
                                   env={ 'SUNXI_FEL': self.sunxi_fel })
-
-            if p.wait() != 0:
-                return (False, 'Failed to engage in FEL mode')
         else:
             
             p = subprocess.Popen([self.fel_mode_script],
                                  cwd=os.path.dirname(self.fel_mode_script))
 
+        if p:
             if p.wait() != 0:
                 return (False, 'Failed to engage in FEL mode')
-
+        else:
+            return (False, 'Invalid operating system')
 
         return (True, 'Successful engaged in FEL mode')
 
@@ -102,6 +102,8 @@ class InstallHandler(QThread):
         self.system_partition = None
         
         if is_linux():
+            lines = None
+
             fdisk_cmd = ['fdisk', '-l']
             out = subprocess.check_output(fdisk_cmd)
             out = out.decode()
@@ -134,34 +136,42 @@ class InstallHandler(QThread):
         elif is_mac():
             out = subprocess.check_output(shlex.split('diskutil list'))
             out = out.decode()
-            disks = out.split('/dev/')
-            print(disks)
             diskutil_lines = out.split('\n')
             print(diskutil_lines)
             for i, l in enumerate(diskutil_lines):
                 parts = list(filter(None, l.split(' ')))
-                print(parts)
-                if l.startswith('/dev') and parts[1].contains('external') and i + 4 < len(diskutil_lines):
-                    current_disk = l.split(' ')[0]
-                    print(current_disk)
-                    main_disk_line = diskutil_lines[i + 2]
-                    boot_part_line = diskutil_lines[i + 3]
-                    linux_part_line = diskutil_lines[i + 4]
-                    _, _, disk_size, _ = main_disk_line
-                    _, boot_name, boot_size, boot_id = boot_part_line
-                    _, linux_name, _, linux_id = linux_part_line
-                    print(disk_size, boot_name, boot_size, linux_name, linux_id)
+                
+                if parts[0].startswith('/dev'):
+                    line_count = i + 1
+                    part_lines = []
+
+                    while line_count < len(diskutil_lines) and not diskutil_lines[line_count].startswith('/dev'):
+                        part_lines.append(list(filter(None, diskutil_lines[line_count].split(' '))))
+                        line_count += 1
+
+                    for p in part_lines:
+                        if len(p) == 5:
+                            label, type_name, size, size_unit, identifier = p
+                            if type_name == '0xEF' and float(size) < 300 and size_unit == 'MB':
+                                self.partition = identifier
+                            elif type_name == 'Linux' and float(size) < 7 and size_unit == 'GB':
+                                self.system_partition = identifier
+
+                    print(part_lines)
 
             if self.partition and self.system_partition:
+
+                os.makedirs(self.system_mount_dir, exist_ok=True)
+
                 out = subprocess.check_output(
-                    shlex.split('sudo mount -t msdos {0} {1}'.format(self.partition, self.mount_dir)))
+                    shlex.split('sudo mount -t msdos /dev/{0} {1}'.format(self.partition, self.mount_dir)))
 
                 out = out.decode()
 
                 print(out)
 
                 out = subprocess.check_output(
-                    shlex.split('sudo mount -t msdos {0} {1}'.format(self.system_partition, self.system_mount_dir)))
+                    shlex.split('sudo mount -t msdos /dev/{0} {1}'.format(self.system_partition, self.system_mount_dir)))
 
                 out = out.decode()
 
@@ -200,7 +210,7 @@ class InstallHandler(QThread):
         return (True, 'Finished with unmount')
 
     def download_files(self):
-        #os.makedirs(self.copy_directory, exist_ok=True)
+        os.makedirs(self.copy_directory, exist_ok=True)
 
         s3_bucket_url = self.config.s3_bucket_url
 
@@ -266,7 +276,9 @@ class InstallHandler(QThread):
             counter += 1
 
     def report_progress(self, message):
+        print(message)
         self.progress_signal.emit(message, 0, 1)
+
 
     def run(self):
 
@@ -284,7 +296,7 @@ class InstallHandler(QThread):
 
         if success:
             self.report_progress('Initiating the mounting of the device...')
-            success, msg = self.initiate_fel_mode()
+            # success, msg = self.initiate_fel_mode()
 
         if success:
             self.wait_with_progress('Mounting the device...', 10)
@@ -370,9 +382,6 @@ class AppContext(ApplicationContext):
         self.install_handler.finish_signal.connect(self.finished_install)
         self.install_handler.finish_signal.connect(self.clear_progress_bar)
 
-        if is_mac():
-            self.install_handler.finish_signal.connect(self.update_progress_text)
-
     def finished_install(self, success, msg):
         print('Success: {0}'.format(success))
         print(msg)
@@ -392,9 +401,6 @@ class AppContext(ApplicationContext):
     
     def update_progress_text(self, current, done, total):
         self.progress_status.showMessage(current)
-
-    def update_progress_text(self, success, msg):
-        self.progress_status.showMessage(msg)
 
     def prompt_unplug(self):
         prompt = QMessageBox()
