@@ -85,7 +85,12 @@ class InstallHandler(QThread):
             if p.wait() != 0:
                 return (False, 'Failed to engage in FEL mode')
         else:
-            pass
+            
+            p = subprocess.Popen([self.fel_mode_script],
+                                 cwd=os.path.dirname(self.fel_mode_script))
+
+            if p.wait() != 0:
+                return (False, 'Failed to engage in FEL mode')
 
 
         return (True, 'Successful engaged in FEL mode')
@@ -306,14 +311,22 @@ class InstallHandler(QThread):
 class AppContext(ApplicationContext):
 
     def run(self):
-        config_file = self.get_resource('config.json')
-        config = json.loads(open(config_file).read())
+        config_file, config = None, None
+        try:
+            config_file = self.get_resource('config.json')
+            config = json.loads(open(config_file).read())
+        except:
+            pass
 
         fel_mode_script = None
         if is_linux() or is_mac():
             fel_mode_script = self.get_resource('fel-mass-storage/start.sh')
+        else:
+            fel_mode_script = self.get_resource('fel-mass-storage/start.bat')
 
-        sunxi_fel = self.get_resource('sunxi-fel')
+        sunxi_fel = None
+        if is_linux() or is_mac():
+            sunxi_fel = self.get_resource('sunxi-fel')
 
         window = QMainWindow()
         version = self.build_settings['version']
@@ -321,6 +334,10 @@ class AppContext(ApplicationContext):
         window.resize(250, 150)
 
         layout = QVBoxLayout()
+
+        if not config:
+            errorBox = QMessageBox()
+            errorBox.critical(0, 'Failed to find config file')
 
         self.install_handler = InstallHandler(config, fel_mode_script, sunxi_fel)
 
