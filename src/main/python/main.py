@@ -186,9 +186,9 @@ class InstallHandler(QThread):
         return (False, 'Could not find device partition from output {0}'.format(out))
 
     def unmount(self):
-        print('Unmounting {0} as SYSTEM'.format(self.system_partition))
         
         if is_linux():
+            print('Unmounting {0} as SYSTEM'.format(self.system_partition))
 
             p = subprocess.Popen(['udisksctl', 'unmount', '--block-device', self.system_partition])
             if p.wait() != 0:
@@ -296,7 +296,7 @@ class InstallHandler(QThread):
 
         if success:
             self.report_progress('Initiating the mounting of the device...')
-            # success, msg = self.initiate_fel_mode()
+            success, msg = self.initiate_fel_mode()
 
         if success:
             self.wait_with_progress('Mounting the device...', 10)
@@ -308,7 +308,7 @@ class InstallHandler(QThread):
             success, msg = self.copy_files()
 
         if success:
-            self.wait_with_progress('Copying files...', 45)
+            self.wait_with_progress('Copying files...', 60)
 
         if success:
             success, msg = self.unmount()
@@ -335,6 +335,7 @@ class AppContext(ApplicationContext):
         else:
             fel_mode_script = self.get_resource('fel-mass-storage/start.bat')
 
+        # For windows, sunxi-fel.exe is located in fel-mass-storage/win32
         sunxi_fel = None
         if is_linux() or is_mac():
             sunxi_fel = self.get_resource('sunxi-fel')
@@ -342,7 +343,7 @@ class AppContext(ApplicationContext):
         window = QMainWindow()
         version = self.build_settings['version']
         window.setWindowTitle('Synchrony Installer')
-        window.resize(250, 150)
+        window.setFixedSize(250, 100)
 
         layout = QVBoxLayout()
 
@@ -393,7 +394,7 @@ class AppContext(ApplicationContext):
             self.progress_bar.setFormat('Finished updating the device')
         else:
             self.progress_bar.setValue(0)
-            self.progress_bar.setFormat('Failed to update the device')
+            self.progress_bar.setFormat('Failed to update the device:\n {0}'.format(msg))
 
     def update_progress(self, current, done, total):
         self.progress_bar.setValue((done / total) * 100)
