@@ -141,7 +141,7 @@ class InstallHandler(QThread):
             for i, l in enumerate(diskutil_lines):
                 parts = list(filter(None, l.split(' ')))
                 
-                if parts[0].startswith('/dev'):
+                if len(parts) > 0 and parts[0].startswith('/dev'):
                     line_count = i + 1
                     part_lines = []
 
@@ -151,31 +151,46 @@ class InstallHandler(QThread):
 
                     for p in part_lines:
                         if len(p) == 5:
-                            label, type_name, size, size_unit, identifier = p
-                            if type_name == '0xEF' and float(size) < 300 and size_unit == 'MB':
-                                self.partition = identifier
-                            elif type_name == 'Linux' and float(size) < 7 and size_unit == 'GB':
-                                self.system_partition = identifier
+                            label, type_name, size_str, size_unit, identifier = p
+                            print(label, type_name, size_str, size_unit, identifier)
+                            try:
+                                size = float(size_str)
+                                if type_name == '0xEF' and size < 300.0 and size_unit == 'MB':
+                                    self.partition = identifier
+                                    print('Boot partition found: {0}'.format(self.partition))
+                                elif type_name == 'Linux' and size < 7.0 and size_unit == 'GB':
+                                    self.system_partition = identifier
+                                    print('System partition found: {0}'.format(self.system_partition))
+                            except Exception as e:
+                                print('{0}'.format(e))
 
                     print(part_lines)
 
+            print(self.partition, self.system_partition, self.partition and self.system_partition)
+
             if self.partition and self.system_partition:
 
-                os.makedirs(self.system_mount_dir, exist_ok=True)
+                print('Found both partitions - mounting ...')
 
-                out = subprocess.check_output(
-                    shlex.split('sudo mount -t msdos /dev/{0} {1}'.format(self.partition, self.mount_dir)))
+                try:
+                    os.makedirs(self.system_mount_dir, exist_ok=True)
 
-                out = out.decode()
+                    out = subprocess.check_output(
+                        shlex.split('sudo mount -t msdos /dev/{0} {1}'.format(self.partition, self.mount_dir)))
 
-                print(out)
+                    out = out.decode()
 
-                out = subprocess.check_output(
-                    shlex.split('sudo mount -t msdos /dev/{0} {1}'.format(self.system_partition, self.system_mount_dir)))
+                    print(out)
 
-                out = out.decode()
+                    out = subprocess.check_output(
+                        shlex.split('sudo mount -t msdos /dev/{0} {1}'.format(self.system_partition, self.system_mount_dir)))
 
-                print('Succeeded to mount SYSTEM')
+                    out = out.decode()
+
+                    print('Succeeded to mount SYSTEM')
+                except Exception as e:
+                    print('{0}'.format(e))
+                    return (False, 'Failed to mount partition to directory')
             
                 return (True, 'Success')
 
@@ -305,8 +320,9 @@ class InstallHandler(QThread):
         #     success, msg = self.mount()
 
         # if success:
+        #     self.report_progress('Starting to copy the files...')
         #     success, msg = self.copy_files()
-
+        
         # if success:
         #     self.wait_with_progress('Copying files...', 60)
 
