@@ -298,21 +298,21 @@ class InstallHandler(QThread):
             self.report_progress('Initiating the mounting of the device...')
             success, msg = self.initiate_fel_mode()
 
-        if success:
-            self.wait_with_progress('Mounting the device...', 10)
+        # if success:
+        #     self.wait_with_progress('Mounting the device...', 10)
 
-        if success: 
-            success, msg = self.mount()
+        # if success: 
+        #     success, msg = self.mount()
 
-        if success:
-            success, msg = self.copy_files()
+        # if success:
+        #     success, msg = self.copy_files()
 
-        if success:
-            self.wait_with_progress('Copying files...', 60)
+        # if success:
+        #     self.wait_with_progress('Copying files...', 60)
 
-        if success:
-            success, msg = self.unmount()
-            self.wait_with_progress('Unmounting device...', 10)
+        # if success:
+        #     success, msg = self.unmount()
+        #     self.wait_with_progress('Unmounting device...', 10)
 
         self.finish_signal.emit(success, msg)
 
