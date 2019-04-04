@@ -48,3 +48,18 @@ Windows
 Install Windows 10 SDK from: https://dev.windows.com/en-us/downloads/windows-10-sdk
 Note: You might have to restart the command prompt to get the fbs to work.
 
+###Sunxi-fel
+
+Each OS requires the executable sunxi-fel to engage the device into fel-mode and make it available for mounting.
+
+For Linux and Mac, one just needs to compile the sunxi-tools as instructed in the repo.
+
+For Windows, a bit of cross compiling is needed. Below are the instructions.
+
+1. Install Mingw (compiler for cross-compiling)
+sudo apt-get install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 
+2. Go to the build-script repo (original author eperie) and download the script: build-sunxi-tools-mingw64.sh
+3. Edit the script to remove the part of cloning the sunxi-tools repo, as v1.5 version of the sunxi-tools are needed. Move the v1.5 sunxi-tools directory into the same directory as the script.
+4. Run the script. 
+
+
