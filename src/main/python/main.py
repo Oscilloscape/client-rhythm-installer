@@ -44,23 +44,24 @@ class InstallHandler(QThread):
         self.fel_mode_script = fel_mode_script
         self.sunxi_fel = sunxi_fel
 
-    
     def initiate_fel_mode(self):
 
-        os.makedirs(self.mount_dir, exist_ok=True)
-
         p = None
+        
+        print(self.sunxi_fel, self.fel_mode_script)
 
         if is_linux() or is_mac(): 
             p = subprocess.Popen([self.fel_mode_script],
                                   cwd=os.path.dirname(self.fel_mode_script),
+                                  stdout=PIPE,
                                   env={ 'SUNXI_FEL': self.sunxi_fel })
         else:
-            
             p = subprocess.Popen([self.fel_mode_script],
+                                 stdout=PIPE,
                                  cwd=os.path.dirname(self.fel_mode_script))
 
         if p:
+            print(p.communicate()[0])
             if p.wait() != 0:
                 return (False, 'Failed to engage in FEL mode')
         else:
@@ -80,23 +81,9 @@ class InstallHandler(QThread):
         print(message)
         self.progress_signal.emit(message, 0, 1)
 
-
     def run(self):
 
-        success = False
-
-        if self.completed_before:
-            self.unplug_signal.emit()
-        else:
-            pass
-
-        self.report_progress('hello')
-
-        success = True
-
-        if success:
-            self.report_progress('Initiating the mounting of the device...')
-            success, msg = self.initiate_fel_mode()
+        success, msg = self.initiate_fel_mode()
 
         self.finish_signal.emit(success, msg)
 
