@@ -52,6 +52,10 @@ Note: You might have to restart the command prompt to get the fbs to work.
 
 Each OS requires the executable sunxi-fel to engage the device into fel-mode and make it available for mounting.
 
+Currently, sunxi-fel for each OS is in the src/resources directory.
+
+Below are the instructions if the sunxi-fel needs to get compiled again.
+
 For Linux and Mac, one just needs to compile the sunxi-tools as instructed in the repo.
 
 For Windows, a bit of cross compiling is needed. Below are the instructions.
