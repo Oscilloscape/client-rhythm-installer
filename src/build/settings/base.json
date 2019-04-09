@@ -1,6 +1,6 @@
 {
-    "app_name": "Installer",
-    "author": "jin",
+    "app_name": "FEL Mode Tool",
+    "author": "Synchrony LEDs",
     "main_module": "src/main/python/main.py",
     "version": "0.0.0"
 }
