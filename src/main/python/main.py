@@ -110,7 +110,7 @@ class AppContext(ApplicationContext):
         window.setWindowTitle('Synchrony Installer')
         window.setFixedSize(250, 100)
 
-        layout = QVBoxLayout()
+        layout = QGridLayout()
 
         self.install_handler = InstallHandler(fel_mode_script, sunxi_fel)
 
@@ -119,17 +119,17 @@ class AppContext(ApplicationContext):
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setMaximum(100)
+        self.progress_bar.setTextVisible(False)
         self.install_handler.progress_signal.connect(self.update_progress)
-        
-        if is_mac():
-            self.progress_status = QStatusBar()
-            self.install_handler.progress_signal.connect(self.update_progress_text)
-            window.setStatusBar(self.progress_status)
+    
+        self.progress_status = QStatusBar()
+        self.install_handler.progress_signal.connect(self.update_progress_text)
+        window.setStatusBar(self.progress_status)
 
         self.install_handler.unplug_signal.connect(self.prompt_unplug)
 
-        layout.addWidget(self.install_button)
-        layout.addWidget(self.progress_bar)
+        layout.addWidget(self.install_button, 1, 1)
+        layout.addWidget(self.progress_bar, 2, 1)
 
         central_widget = QWidget()
         window.setCentralWidget(central_widget)
@@ -159,7 +159,7 @@ class AppContext(ApplicationContext):
 
     def update_progress(self, current, done, total):
         self.progress_bar.setValue((done / total) * 100)
-        self.progress_bar.setFormat('{0}'.format(current))
+        # self.progress_bar.setFormat('{0}'.format(current))
     
     def update_progress_text(self, current, done, total):
         self.progress_status.showMessage(current)
