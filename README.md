@@ -1,4 +1,4 @@
-### For now, use the code from branch fel-mode-tool.
+#### Note: For now, use the code from branch fel-mode-tool.
 
 This installer uses fbs to build cross platform PyQt5 Python application.
 
@@ -12,25 +12,25 @@ Use the supported Python v3.6 and PyInstaller 3.4 (as of now)
 
 To install PyInstaller v3.4, run
 
-pip3 install pyinstaller==3.4 
+```pip3 install pyinstaller==3.4```
 
 Install fbs and PyQt5 packages
 
-pip3 install fbs PyQt5
+```pip3 install fbs PyQt5```
 
 ### Finding the fbs and pyinstaller executable
 
 fbs and pyinstaller binary are often not installed in the path. Look for the installation location using
 
-python3 -m site --user-base
+```python3 -m site --user-base```
 
 To run the executable, first initialize the config file in src/main/resources/base by copying the config.json.example file to config.json.
 
 Then, run:
 
-fbs run
+```fbs run```
 
-Mac OS
+#### Mac OS
 
 Install Python 3.6 using below link (instead of brew due to difficulty with versioning): 
 https://www.python.org/downloads/release/python-360/
@@ -41,11 +41,11 @@ If so, do as below:
 https://stackoverflow.com/questions/44740792/pyinstaller-no-module-named-pyinstaller
 
 Make symbolic link of PyInstaller as below:
-ln -s /Library/Frameworks/Python.framework/Versions/3.6/bin/pyinstaller /usr/local/bin/pyinstaller
+```ln -s /Library/Frameworks/Python.framework/Versions/3.6/bin/pyinstaller /usr/local/bin/pyinstaller```
 
 open -a Installer.app in target
 
-Windows
+#### Windows
 
 Install Windows 10 SDK from: https://dev.windows.com/en-us/downloads/windows-10-sdk
 Note: You might have to restart the command prompt to get the fbs to work.
@@ -63,7 +63,7 @@ For Linux and Mac, one just needs to compile the sunxi-tools as instructed in th
 For Windows, a bit of cross compiling is needed. Below are the instructions.
 
 1. Install Mingw (compiler for cross-compiling)
-sudo apt-get install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 
+```sudo apt-get install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64```
 2. Go to the build-script repo (original author eperie) and download the script: build-sunxi-tools-mingw64.sh
 3. Edit the script to remove the part of cloning the sunxi-tools repo, as v1.5 version of the sunxi-tools are needed. Move the v1.5 sunxi-tools directory into the same directory as the script.
 4. Run the script. 
