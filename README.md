@@ -1,10 +1,12 @@
+### For now, use the code from branch fel-mode-tool.
+
 This installer uses fbs to build cross platform PyQt5 Python application.
 
 For more info, see: https://build-system.fman.io/pyqt5-tutorial
 
 As of now, only Python 3.6 is supported for fbs.
 
-##Installation and Build
+## Installation and Build
 
 Use the supported Python v3.6 and PyInstaller 3.4 (as of now)
 
@@ -16,7 +18,7 @@ Install fbs and PyQt5 packages
 
 pip3 install fbs PyQt5
 
-###Finding the fbs and pyinstaller executable
+### Finding the fbs and pyinstaller executable
 
 fbs and pyinstaller binary are often not installed in the path. Look for the installation location using
 
@@ -48,7 +50,7 @@ Windows
 Install Windows 10 SDK from: https://dev.windows.com/en-us/downloads/windows-10-sdk
 Note: You might have to restart the command prompt to get the fbs to work.
 
-###Sunxi-fel
+### Sunxi-fel
 
 Each OS requires the executable sunxi-fel to engage the device into fel-mode and make it available for mounting.
 
