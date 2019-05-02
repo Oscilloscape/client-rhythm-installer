@@ -4,7 +4,7 @@ For more info, see: https://build-system.fman.io/pyqt5-tutorial
 
 As of now, only Python 3.6 is supported for fbs.
 
-##Installation and Build
+## Installation and Build
 
 Use the supported Python v3.6 and PyInstaller 3.4 (as of now)
 
@@ -16,7 +16,7 @@ Install fbs and PyQt5 packages
 
 pip3 install fbs PyQt5
 
-###Finding the fbs and pyinstaller executable
+### inding the fbs and pyinstaller executable
 
 fbs and pyinstaller binary are often not installed in the path. Look for the installation location using
 
@@ -28,7 +28,7 @@ Then, run:
 
 fbs run
 
-Mac OS
+## Mac OS
 
 Install Python 3.6 using below link (instead of brew due to difficulty with versioning): 
 https://www.python.org/downloads/release/python-360/
@@ -43,12 +43,12 @@ ln -s /Library/Frameworks/Python.framework/Versions/3.6/bin/pyinstaller /usr/loc
 
 open -a Installer.app in target
 
-Windows
+## Windows
 
 Install Windows 10 SDK from: https://dev.windows.com/en-us/downloads/windows-10-sdk
 Note: You might have to restart the command prompt to get the fbs to work.
 
-###Sunxi-fel
+## Sunxi-fel
 
 Each OS requires the executable sunxi-fel to engage the device into fel-mode and make it available for mounting.
 
