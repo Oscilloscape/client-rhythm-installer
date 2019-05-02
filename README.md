@@ -16,7 +16,7 @@ Install fbs and PyQt5 packages
 
 pip3 install fbs PyQt5
 
-### inding the fbs and pyinstaller executable
+### Finding the fbs and pyinstaller executable
 
 fbs and pyinstaller binary are often not installed in the path. Look for the installation location using
 
