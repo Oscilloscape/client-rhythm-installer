@@ -1,6 +1,6 @@
 {
-    "app_name": "FEL Mode Tool",
+    "app_name": "SynchronyConnectionTool",
     "author": "Synchrony LEDs",
     "main_module": "src/main/python/main.py",
-    "version": "0.0.0"
+    "version": "1.0.0"
 }
