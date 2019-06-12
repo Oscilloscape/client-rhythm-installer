@@ -1,5 +1,5 @@
 {
-    "app_name": "SynchronyConnectionTool",
+    "app_name": "Synchrony Connection Tool",
     "author": "Synchrony LEDs",
     "main_module": "src/main/python/main.py",
     "version": "1.0.0"
