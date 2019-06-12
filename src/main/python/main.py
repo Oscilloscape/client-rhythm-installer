@@ -9,6 +9,7 @@ from elevate import elevate
 
 # from PyQt5.QtWidgets import QApplication, QLabel, QWidget, QPushButton, QVBoxLayout, QMainWindow
 
+import glob
 from subprocess import Popen, PIPE, STDOUT
 import subprocess
 import sys
@@ -32,6 +33,30 @@ def is_mac():
 def is_windows():
     return platform == 'win32'
 
+def dylib_search():
+    # Search for libusb dylib file. If present on computer, use this
+    # instead of bundled libusb dylib file.
+    env = os.environ
+    paths = []
+    if 'PATH' in env:
+        paths.extend(env['PATH'].split(os.pathsep))
+
+    if 'DYLD_LIBRARY_PATH' in env:
+        paths.extend(env['DYLD_LIBRARY_PATH'].split(os.pathsep))
+
+    # Since environment doesn't seem to be correct,
+    # manually add paths likely to have libusb.dylib file.
+    paths.extend(['/usr/lib', '/usr/local/lib'])
+
+    file = None
+    for path in paths:
+        files = glob.glob(os.path.join(path,'libusb-*.dylib'))
+        if len(files) > 0:
+            file = files[0]
+            break
+
+    return file
+
 class InstallHandler(QThread):
 
     finish_signal = pyqtSignal(bool, str)
@@ -50,11 +75,29 @@ class InstallHandler(QThread):
         
         print(self.sunxi_fel, self.fel_mode_script)
 
-        if is_linux() or is_mac(): 
+        if is_linux():
             p = subprocess.Popen([self.fel_mode_script],
                                   cwd=os.path.dirname(self.fel_mode_script),
                                   stdout=PIPE,
                                   env={ 'SUNXI_FEL': self.sunxi_fel })
+        elif is_mac():
+
+            # Look for existing libusb-*.dylib files.
+            # If there, don't add bundled resource to path.
+            dylib_dir = dylib_search()
+
+            if dylib_dir is None:
+                sync_lib_path = os.path.dirname(self.sunxi_fel)
+            else:
+                sync_lib_path = dylib_dir
+
+            fel_dir = os.path.dirname(self.fel_mode_script)
+
+            p = subprocess.Popen([self.fel_mode_script],
+                                  cwd=os.path.dirname(self.fel_mode_script),
+                                  stdout=PIPE,
+                                  env={ 'SUNXI_FEL': self.sunxi_fel, 'LIB_PATH' : sync_lib_path, 'FEL_DIR' : fel_dir })
+
         else:
             p = subprocess.Popen([self.fel_mode_script],
                                  stdout=PIPE,
@@ -107,14 +150,14 @@ class AppContext(ApplicationContext):
 
         window = QMainWindow()
         version = self.build_settings['version']
-        window.setWindowTitle('Synchrony Installer')
+        window.setWindowTitle('Synchrony Connection Tool')
         window.setFixedSize(250, 100)
 
         layout = QGridLayout()
 
         self.install_handler = InstallHandler(fel_mode_script, sunxi_fel)
 
-        self.install_button = QPushButton('Install')
+        self.install_button = QPushButton('Connect')
         self.install_button.clicked.connect(self.clicked_install)
 
         self.progress_bar = QProgressBar()
@@ -167,7 +210,7 @@ class AppContext(ApplicationContext):
     def prompt_unplug(self):
         prompt = QMessageBox()
         prompt.setIcon(QMessageBox.Warning)
-        prompt.setText('Plug out the device and plug it back in fel-mode.')
+        prompt.setText('Unplug the device and plug it back in fel-mode.')
         prompt.setStandardButtons(QMessageBox.Ok)
 
         self.install_handler.completed_before = False
