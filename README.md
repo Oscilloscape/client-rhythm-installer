@@ -28,6 +28,18 @@ Then, run:
 
 fbs run
 
+if error occurs do the following (works for Mac):
+
+pip uninstall fbs
+pip install fbs==0.8.2
+pip install reuqests elevate
+
+fbs clean
+
+now you can run: fbs run
+
+this error occurs because of a bug in the updated fbs version 0.8.3
+
 ## Mac OS
 
 Install Python 3.6 using below link (instead of brew due to difficulty with versioning): 
