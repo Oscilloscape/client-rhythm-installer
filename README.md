@@ -31,7 +31,9 @@ fbs run
 if error occurs do the following (works for Mac):
 
 pip uninstall fbs
+
 pip install fbs==0.8.2
+
 pip install reuqests elevate
 
 fbs clean
