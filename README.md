@@ -66,7 +66,9 @@ When running "fbs installer"
 
 If you encounter an error such as: FileNotFoundError: fbs could not find executable 'makensis'. Please install NSIS and add its installation directory to your PATH environment variable,
 
-Install NSIS in the directory C:Users\<User-name-here>\     Instead of in its default -> Program Files(x86)
+Install NSIS in the directory C:Users\<User-name-here>\     
+
+Instead of in its default -> Program Files(x86)
 
 
 ## Sunxi-fel
