@@ -62,7 +62,7 @@ open -a Installer.app in target
 Install Windows 10 SDK from: https://dev.windows.com/en-us/downloads/windows-10-sdk
 Note: You might have to restart the command prompt to get the fbs to work.
 
-fbs installer
+When running "fbs installer"
 
 If you encounter an error such as: FileNotFoundError: fbs could not find executable 'makensis'. Please install NSIS and add its installation directory to your PATH environment variable,
 
