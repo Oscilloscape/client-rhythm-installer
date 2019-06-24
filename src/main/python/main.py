@@ -151,7 +151,6 @@ class AppContext(ApplicationContext):
         window = QMainWindow()
         version = self.build_settings['version']
         window.setWindowTitle('Synchrony Connection Tool')
-        window.setFixedSize(250, 100)
 
         layout = QGridLayout()
 
