@@ -28,19 +28,19 @@ Then, run:
 
 fbs run
 
-if error occurs do the following (works for Mac):
+if 'ImportError' message occurs do the following (make sure Python 3.6 interpreter is used):
 
-pip uninstall fbs
+pip3 uninstall fbs
 
-pip install fbs==0.8.2
+pip3 install fbs==0.8.2
 
-pip install reuqests elevate
+pip3 install reuqests elevate
 
 fbs clean
 
 now you can run: fbs run
 
-this error occurs because of a bug in the updated fbs version 0.8.3
+**this error occurs because of a bug in the updated fbs version 0.8.3**
 
 ## Mac OS
 
